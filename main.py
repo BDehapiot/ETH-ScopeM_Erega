@@ -4,22 +4,26 @@ import numpy as np
 from skimage import io 
 from pathlib import Path
 
+from skimage.filters import gaussian
+from skimage.morphology import binary_erosion
+
 #%% Parameters ----------------------------------------------------------------
 
+pixSize = 2.1526
+voxSize = 2.9793
 treshC1 = 0.1
 treshC2 = 0.1
 
 #%% Initialize ----------------------------------------------------------------
 
 stack_name = 'expl_01.tif'
-stack = io.imread(Path('data') / stack_name)
+stack_path = Path('data') / stack_name
+stack = io.imread(stack_path)
 stackC1 = stack[:,0,...]
 stackC2 = stack[:,1,...]
+scaleFactors = [voxSize, pixSize, pixSize]
 
 #%%
-
-from skimage.filters import gaussian
-from skimage.morphology import binary_erosion
 
 # segment (blur + threshold)
 maskC1 = gaussian(stackC1, sigma=2) > treshC1
@@ -36,15 +40,9 @@ overlap = np.logical_and(maskC1, maskC2)
 outlineC1 = ((binary_erosion(maskC1) ^ maskC1).astype('uint8'))*255
 outlineC2 = ((binary_erosion(maskC2) ^ maskC2).astype('uint8'))*255
 outlineC1 = np.stack((
-    np.zeros_like(outlineC1),
-    outlineC1,
-    np.zeros_like(outlineC1),
-    ), axis=-1)
+    np.zeros_like(outlineC1), outlineC1, np.zeros_like(outlineC1)), axis=-1)
 outlineC2 = np.stack((
-    outlineC2,
-    np.zeros_like(outlineC2),
-    outlineC2,
-    ), axis=-1)
+    outlineC2, np.zeros_like(outlineC2), outlineC2), axis=-1)
 
 stackHrz = np.concatenate((stackC1, stackC2), axis=2)
 outlineHrz = np.concatenate((outlineC1, outlineC2), axis=2)
@@ -64,19 +62,19 @@ outlineHrz = np.concatenate((outlineC1, outlineC2), axis=2)
 import napari
 viewer = napari.Viewer()
 
-# viewer.add_image(stackC1)
-# viewer.add_image(stackC2)
-# viewer.add_image(maskC1)
-# viewer.add_image(maskC2)
+# viewer.add_image(stackC1, scale=scaleFactors)
+# viewer.add_image(stackC2, scale=scaleFactors)
+# viewer.add_image(maskC1, scale=scaleFactors)
+# viewer.add_image(maskC2, scale=scaleFactors)
 
-# viewer.add_image(outlineC1)
-# viewer.add_image(outlineC2)
+viewer.add_image(outlineC1, scale=scaleFactors)
+viewer.add_image(outlineC2, scale=scaleFactors)
 
-viewer.add_image(stackHrz)
-viewer.add_image(outlineHrz)
+# viewer.add_image(stackHrz, scale=scaleFactors)
+# viewer.add_image(outlineHrz, scale=scaleFactors)
 
-# viewer.add_image(displayC1)
-# viewer.add_image(displayC2)
+# viewer.add_image(displayC1, scale=scaleFactors))
+# viewer.add_image(displayC2, scale=scaleFactors))
 
 # viewer.add_image(onlyC1, colormap='green', blending='additive')
 # viewer.add_image(onlyC2, colormap='magenta', blending='additive')
