@@ -3,7 +3,6 @@
 import numpy as np
 from skimage import io 
 from pathlib import Path
-
 from skimage.filters import gaussian
 from skimage.morphology import binary_erosion
 
@@ -23,60 +22,66 @@ stackC1 = stack[:,0,...]
 stackC2 = stack[:,1,...]
 scaleFactors = [voxSize, pixSize, pixSize]
 
-#%%
+#%% Process -------------------------------------------------------------------
 
-# segment (blur + threshold)
+# Segment (blur + threshold)
 maskC1 = gaussian(stackC1, sigma=2) > treshC1
 maskC2 = gaussian(stackC2, sigma=2) > treshC2
 
-# get results
+# Get results
 onlyC1 = maskC1.copy()
 onlyC1[maskC2==True] = False
 onlyC2 = maskC2.copy()
 onlyC2[maskC1==True] = False
-overlap = np.logical_and(maskC1, maskC2)
+intersect = np.logical_and(maskC1, maskC2)
 
-# display
+# Show results
+print(       
+      f'allC1 =     {np.sum(maskC1)}\n'
+      f'onlyC1 =    {np.sum(onlyC1)}\n'
+      f'allC2 =     {np.sum(maskC2)}\n'
+      f'onlyC2 =    {np.sum(onlyC2)}\n'
+      f'interC1C2 = {np.sum(intersect)}\n'
+      )
+
+# Displays
+empty = np.zeros_like(stackC1)
 outlineC1 = ((binary_erosion(maskC1) ^ maskC1).astype('uint8'))*255
 outlineC2 = ((binary_erosion(maskC2) ^ maskC2).astype('uint8'))*255
-outlineC1 = np.stack((
-    np.zeros_like(outlineC1), outlineC1, np.zeros_like(outlineC1)), axis=-1)
-outlineC2 = np.stack((
-    outlineC2, np.zeros_like(outlineC2), outlineC2), axis=-1)
+displayC1 = np.maximum(stackC1, outlineC1)
+displayC2 = np.maximum(stackC2, outlineC2)
 
-stackHrz = np.concatenate((stackC1, stackC2), axis=2)
-outlineHrz = np.concatenate((outlineC1, outlineC2), axis=2)
+#%% Napari displays -----------------------------------------------------------
 
-# displayC1 = np.stack((stackC1, stackC1, stackC1), axis=-1)
+# import napari
+# viewer = napari.Viewer()
 
+# -----------------------------------------------------------------------------
 
-# displayC1 = stackC1.copy()
-# displayC1[outlineC1==True] = np.max(displayC1) 
-# displayC2 = stackC2.copy()
-# displayC2[outlineC2==True] = np.max(displayC2) 
-
-
-
-#%%
-
-import napari
-viewer = napari.Viewer()
-
+# # Raw data
 # viewer.add_image(stackC1, scale=scaleFactors)
 # viewer.add_image(stackC2, scale=scaleFactors)
+
+# -----------------------------------------------------------------------------
+
+# # Masks
 # viewer.add_image(maskC1, scale=scaleFactors)
 # viewer.add_image(maskC2, scale=scaleFactors)
 
-viewer.add_image(outlineC1, scale=scaleFactors)
-viewer.add_image(outlineC2, scale=scaleFactors)
+# -----------------------------------------------------------------------------
 
-# viewer.add_image(stackHrz, scale=scaleFactors)
-# viewer.add_image(outlineHrz, scale=scaleFactors)
-
-# viewer.add_image(displayC1, scale=scaleFactors))
-# viewer.add_image(displayC2, scale=scaleFactors))
-
-# viewer.add_image(onlyC1, colormap='green', blending='additive')
-# viewer.add_image(onlyC2, colormap='magenta', blending='additive')
-# viewer.add_image(overlap, colormap='gray', blending='additive')
+# # Results
+# viewer.add_image(
+#     onlyC1, colormap='green', blending='additive', scale=scaleFactors)
+# viewer.add_image(
+#     onlyC2, colormap='magenta', blending='additive', scale=scaleFactors)
+# viewer.add_image(
+#     intersect, colormap='gray', blending='additive', scale=scaleFactors)
 # viewer.ndims.ndisplay = 3
+
+# -----------------------------------------------------------------------------
+
+# # Displays
+# viewer.add_image(displayC1, scale=scaleFactors)
+# viewer.add_image(displayC2, scale=scaleFactors)
+
