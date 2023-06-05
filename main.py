@@ -53,8 +53,8 @@ displayC2 = np.maximum(stackC2, outlineC2)
 
 #%% Napari displays -----------------------------------------------------------
 
-# import napari
-# viewer = napari.Viewer()
+import napari
+viewer = napari.Viewer()
 
 # -----------------------------------------------------------------------------
 
@@ -70,18 +70,16 @@ displayC2 = np.maximum(stackC2, outlineC2)
 
 # -----------------------------------------------------------------------------
 
-# # Results
-# viewer.add_image(
-#     onlyC1, colormap='green', blending='additive', scale=scaleFactors)
-# viewer.add_image(
-#     onlyC2, colormap='magenta', blending='additive', scale=scaleFactors)
-# viewer.add_image(
-#     intersect, colormap='gray', blending='additive', scale=scaleFactors)
-# viewer.ndims.ndisplay = 3
+# Results
+viewer.add_image(
+    onlyC1, colormap='green', blending='additive', scale=scaleFactors)
+viewer.add_image(
+    onlyC2, colormap='magenta', blending='additive', scale=scaleFactors)
+viewer.add_image(
+    intersect, colormap='gray', blending='additive', scale=scaleFactors)
 
 # -----------------------------------------------------------------------------
 
 # # Displays
 # viewer.add_image(displayC1, scale=scaleFactors)
 # viewer.add_image(displayC2, scale=scaleFactors)
-
