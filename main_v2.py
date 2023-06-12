@@ -2,6 +2,7 @@
 
 import re
 import numpy as np
+import pandas as pd
 from skimage import io 
 from pathlib import Path
 from tifffile import TiffFile
@@ -24,8 +25,6 @@ hstack_data = {
     'hstackName': [],
     'chnNames': [],
     'voxSize': [],
-    'hstack': [],
-    'mask':[],
     }
 
 for hstack_path in sorted(Path(data_path).iterdir()): 
@@ -61,62 +60,123 @@ for hstack_path in sorted(Path(data_path).iterdir()):
         voxZ = float(re.findall('\d+\.\d+', info[zi:zf])[0])
         voxSize = tuple((voxX, voxY, voxZ))
         
+        # create saving directory
+        dir_path = Path(data_path, hstackName)
+        dir_path.mkdir(parents=True, exist_ok=True)
+        
         # Extract channels
         try:
             chn_data.append((
                 hstackName, 'dead',
                 hstack[:, chnNames.index('dead'), ...],
                 ))
-        except:
-            pass
+        except: pass
         try:
             chn_data.append((
                 hstackName, 'live',
                 hstack[:, chnNames.index('live'), ...],
                 ))  
-        except:
-            pass    
+        except: pass    
         try:
             chn_data.append((
                 hstackName, 'bflm',
                 hstack[:, chnNames.index('bflm'), ...],
                 )) 
-        except:
-            pass
+        except: pass
             
         # Append hstack dict
         hstack_data['metadata'].append(metadata)
         hstack_data['hstackName'].append(hstackName)
         hstack_data['chnNames'].append(chnNames)
         hstack_data['voxSize'].append(voxSize)
-        hstack_data['hstack'].append(hstack)
+        
+#%% Get mask ------------------------------------------------------------------   
 
-#%% Process -------------------------------------------------------------------   
-
-def process(chn):
-    return gaussian(chn, 2) > 0.1
+def get_mask(chn):
+    mask = (gaussian(chn, 2) > 0.1).astype('uint8') * 255
+    outline = mask - binary_erosion(mask)
+    display = np.maximum(chn, outline)
+    return mask, outline, display
 
 outputs = Parallel(n_jobs=-1)(
-    delayed(process)(data[2]) 
+    delayed(get_mask)(data[2]) 
     for data in chn_data
     ) 
 
 chn_data = [
-    (data[0], data[1], data[2], output) 
+    (data[0], data[1], data[2], output[0], output[1], output[2]) 
     for data, output in zip(chn_data, outputs)
     ]
 
 #%%
 
-hstackNames = sorted(set(hstack_data['hstackName']))
-for hstackName in hstackNames:
-    data = [data for data in chn_data if data[0] == hstackName]
-    mask = np.stack([data[3] for data in data], axis=1)
-    hstack_data['mask'].append(mask)
+for i in range(len(chn_data)):
+    
+    hstackName = chn_data[i][0]
+    chnName = chn_data[i][1]
+    mask = chn_data[i][3]
+    outline = chn_data[i][4]
+    display = chn_data[i][5]
+    
+    io.imsave(
+        Path(data_path, hstackName + '_mask_' + chnName + '.tif'),
+        mask,
+        check_contrast=False, 
+        imagej=True,
+        ) 
+    
+    io.imsave(
+        Path(data_path, hstackName + '_display_' + chnName + '.tif'),
+        display,
+        check_contrast=False, 
+        imagej=True,
+        )    
+        
+        
+    
+#%%
+
+# results = []
+# for i, mask in enumerate(hstack_data['mask']):
+    
+#     hstackName = hstack_data['hstackName'][i]
+#     chnNames = hstack_data['chnNames'][i]
+    
+#     try: 
+#         dead = mask[:, chnNames.index('dead'), ...]
+#         live = mask[:, chnNames.index('live'), ...]
+#         inter_dl = np.sum(np.logical_and(dead, live))
+#         union_dl = np.sum(np.logical_or(dead, live))
+#         iou_dl = np.sum(inter_dl)/np.sum(union_dl)
+#     except:
+#         inter_dl, union_dl, iou_dl = np.nan, np.nan, np.nan
+
+#     try: 
+#         dead = mask[:, chnNames.index('dead'), ...]
+#         bflm = mask[:, chnNames.index('bflm'), ...]
+#         inter_db = np.sum(np.logical_and(dead, bflm))
+#         union_db = np.sum(np.logical_or(dead, bflm))
+#         iou_db = np.sum(inter_db)/np.sum(union_db)
+#     except:
+#         inter_db, union_db, iou_db = np.nan, np.nan, np.nan
+
+#     try: 
+#         live = mask[:, chnNames.index('live'), ...]
+#         bflm = mask[:, chnNames.index('bflm'), ...]
+#         inter_lb = np.sum(np.logical_and(live, bflm))
+#         union_lb = np.sum(np.logical_or(live, bflm))
+#         iou_lb = np.sum(inter_lb)/np.sum(union_lb)
+#     except: 
+#         inter_lb, union_lb, iou_lb = np.nan, np.nan, np.nan
+        
+#     results.append((hstackName, 'dead/live', inter_dl, union_dl, iou_dl))
+#     results.append((hstackName, 'dead/bflm', inter_db, union_db, iou_db))
+#     results.append((hstackName, 'live/bflm', inter_lb, union_lb, iou_lb))
+    
+# results = pd.DataFrame(results, columns=['name', 'comp.', 'inter.', 'union', 'iou'])
 
 
-
-#%% Display -------------------------------------------------------------------
+#%% outline -------------------------------------------------------------------
     
 # import napari
 # viewer = napari.Viewer()
