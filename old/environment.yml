@@ -1,0 +1,12 @@
+name: ETH-ScopeM_Erega
+
+channels:
+  - conda-forge
+      
+dependencies:
+  - python=3.9
+  - numpy=1.23
+  - pandas
+  - scipy
+  - scikit-image
+  - joblib
