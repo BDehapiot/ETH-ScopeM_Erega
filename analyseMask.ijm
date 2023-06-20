@@ -105,7 +105,7 @@ run("Merge Channels...", "c2=Mask-1 c6=Mask-2 create");
 rename("chn1(green)_chn2(magenta)_both(white)");
 close("Mask-inter");
 close("Mask-union");
-close("ID-union");
+//close("ID-union");
 
 setBatchMode("exit and display");
 
